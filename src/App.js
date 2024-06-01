@@ -1,50 +1,49 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
+import Home from './components/Home';
+import Books from './components/Books';
+import About from './components/About';
+import Contact from './components/Contact';
+import BookDetails from './components/BookDetails';
 import './App.css';
-import axios from 'axios';
 
 function App() {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [author, setAuthor] = useState('');
-  const [blogs, setBlogs] = useState([]);
-
-  useEffect(() => {
-    axios.get('http://localhost:8080/get-blogs')
-      .then(res => {
-        setBlogs(res.data.data);
-      })
-      .catch(err => console.log(err));
-  }, []);
-
-  const addNewBlog = () => {
-    axios.post('http://localhost:8080/add-blog', { title, content, author })
-      .then(res => {
-        setBlogs([...blogs, res.data.data]);
-      })
-      .catch(err => console.log(err));
-  };
-
   return (
-    <div className='container'>
-      <h1>Blog App</h1>
-      {
-        blogs.map((blog, key) => (
-          <div key={key} className="card">
-            <h2>{blog.title}</h2>
-            <p>{blog.content}</p>
-            <p>Author: {blog.author}</p>
+    <Router>
+      <div>
+        <nav className="navbar navbar-expand-lg navbar-light bg-light">
+          <a className="navbar-brand" href="#">BookStore</a>
+          <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span className="navbar-toggler-icon"></span>
+          </button>
+          <div className="collapse navbar-collapse" id="navbarNav">
+            <ul className="navbar-nav ml-auto">
+              <li className="nav-item"><Link className="nav-link" to="/">Home</Link></li>
+              <li className="nav-item"><Link className="nav-link" to="/books">Books</Link></li>
+
+              <li className="nav-item"><Link className="nav-link" to="/about">About Us</Link></li>
+              <li className="nav-item"><Link className="nav-link" to="/contact">Contact</Link></li>
+            </ul>
+            <form className="form-inline my-2 my-lg-0">
+            <div className="input-group">
+                <input className="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search"/>
+                <div className="input-group-append">
+                  <button className="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+                </div>
+              </div>
+            </form>
           </div>
-        ))
-      }
-      <hr />
-      <label htmlFor="">Title: </label>
-      <input type="text" onChange={(e) => setTitle(e.target.value)} /><br /><br />
-      <label htmlFor=" ">Content: </label>
-      <textarea onChange={(e) => setContent(e.target.value)} /><br /><br />
-      <label htmlFor=" ">Author: </label>
-      <input type="text" onChange={(e) => setAuthor(e.target.value)} /><br /><br />
-      <button onClick={addNewBlog}>Add New Blog</button>
-    </div>
+        </nav>
+        <Routes>
+          <Route path="/" exact element={<Home />} />
+          <Route path="/books" element={<Books />} />
+          <Route path="/categories" element={<Books />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/book/:id" element={<BookDetails />} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 
