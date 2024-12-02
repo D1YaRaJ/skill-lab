@@ -1,58 +1,77 @@
 const express = require('express');
-const PriorityQueue = require('./priorityQueue');
-const Stack = require('./stack');
+const cron = require('node-cron');
 
 const app = express();
 app.use(express.json());
 
-const complaintQueue = new PriorityQueue();
-const resolvedComplaintsStack = new Stack();
-const logEntries = [];
-
-// Complaint Registration API
-app.post('/complaints', (req, res) => {
-    const { description, healthRisk, missedPickups, proximityToSensitiveArea } = req.body;
-    let priority = calculatePriority(healthRisk, missedPickups, proximityToSensitiveArea);
-    complaintQueue.enqueue({ description, healthRisk, missedPickups, proximityToSensitiveArea }, priority);
-    res.status(201).send('Complaint registered successfully');
-});
-
-// Process Complaint
-app.post('/process-complaint', (req, res) => {
-    if (complaintQueue.isEmpty()) {
-        return res.status(200).send('No complaints to process');
+class Queue {
+    constructor() {
+        this.items = [];
     }
-    const complaint = complaintQueue.dequeue().element;
-    resolvedComplaintsStack.push(complaint);
-    logEntries.push({ action: 'processed', complaint, timestamp: new Date() });
-    res.status(200).send('Complaint processed successfully');
-});
 
-// Revert Complaint
-app.post('/revert-complaint', (req, res) => {
-    if (resolvedComplaintsStack.isEmpty()) {
-        return res.status(200).send('No complaints to revert');
+    enqueue(element) {
+            this.items.push(element);
     }
-    const complaint = resolvedComplaintsStack.pop();
-    logEntries.push({ action: 'reverted', complaint, timestamp: new Date() });
-    res.status(200).send('Complaint reverted successfully');
-});
 
-// View Logs
-app.get('/logs', (req, res) => {
-    res.status(200).json(logEntries);
-});
+    dequeue() {
+        return this.items.shift();
+    }
 
-// Utility function to calculate priority
-function calculatePriority(healthRisk, missedPickups, proximityToSensitiveArea) {
-    let priority = 0;
-    if (healthRisk) priority += 3;
-    if (missedPickups) priority += 2;
-    if (proximityToSensitiveArea) priority += 1;
-    return priority;
+    isEmpty() {
+        return this.items.length === 0;
+    }
 }
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+const menu = [];
+const orders = [];
+const orderQueue = new Queue();
+
+app.post('/menu', (req, res) => {
+        menu.push({ 
+            id:req.body.id,
+            name:req.body.name,
+            price:req.body.price,
+            category:req.body.category
+         });
+        res.send('Menu item added successfully');
 });
+
+app.get('/menu', (req, res) => {
+    res.json(menu);
+});
+
+app.post('/orders', (req, res) => {
+    const { id, items } = req.body;
+    const order = { id, items, status: 'Preparing' };
+    orders.push(order);
+    orderQueue.enqueue(order);
+    res.send('Order placed successfully');
+});
+
+app.get('/orders/:id', (req, res) => {
+    const order = orders.find(order => order.id === req.params.id);
+    if (!order) {
+        return res.status(404).send('Order not found');
+    }
+    res.json(order);
+});
+
+cron.schedule('1 * * * *', () => {
+    if (!orderQueue.isEmpty()) {
+        const order = orderQueue.dequeue();
+        if (order.status === 'Preparing') {
+            order.status = 'Out for Delivery';
+            orderQueue.enqueue(order);
+        } else if (order.status === 'Out for Delivery') {
+            order.status = 'Delivered';
+        }
+    }
+});
+
+app.listen(1234,()=> console.log('Server started'))
+
+
+
+
+
+
